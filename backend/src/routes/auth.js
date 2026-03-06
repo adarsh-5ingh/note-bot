@@ -18,7 +18,8 @@ function signJwt(user) {
 // The Next.js /auth/callback page will read it and store it.
 function handleCallback(req, res) {
   const token = signJwt(req.user);
-  res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+  const clientUrl = process.env.CLIENT_URL_PROD || process.env.CLIENT_URL;
+  res.redirect(`${clientUrl}/auth/callback?token=${token}`);
 }
 
 // ─── Google ──────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 
 router.get(
   '/google/callback',
-  passport.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL}?error=google_failed` }),
+  passport.authenticate('google', { failureRedirect: `${process.env.CLIENT_URL_PROD || process.env.CLIENT_URL}?error=google_failed` }),
   handleCallback
 );
 
@@ -35,7 +36,7 @@ router.get('/github', passport.authenticate('github'));
 
 router.get(
   '/github/callback',
-  passport.authenticate('github', { failureRedirect: `${process.env.CLIENT_URL}?error=github_failed` }),
+  passport.authenticate('github', { failureRedirect: `${process.env.CLIENT_URL_PROD || process.env.CLIENT_URL}?error=github_failed` }),
   handleCallback
 );
 
@@ -44,7 +45,7 @@ router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }))
 
 router.get(
   '/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: `${process.env.CLIENT_URL}?error=facebook_failed` }),
+  passport.authenticate('facebook', { failureRedirect: `${process.env.CLIENT_URL_PROD || process.env.CLIENT_URL}?error=facebook_failed` }),
   handleCallback
 );
 
