@@ -30,8 +30,9 @@ export default function NoteEditor() {
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
   const [copied, setCopied]       = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [lightbox, setLightbox]   = useState<string | null>(null);
+  const [uploading, setUploading]       = useState(false);
+  const [lightbox, setLightbox]         = useState<string | null>(null);
+  const [editorMenuOpen, setEditorMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef    = useRef<HTMLDivElement>(null);
 
@@ -139,7 +140,7 @@ export default function NoteEditor() {
       const res = await fetch(`${API}/api/notes`, {
         method: 'POST',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, tags }),
+        body: JSON.stringify({ title, content, tags, isPublic, isPinned }),
       });
       const data = await res.json();
       setNoteId(data.note._id);
@@ -167,18 +168,16 @@ export default function NoteEditor() {
 
   // ── Public toggle ─────────────────────────────────────────────────────────
   async function togglePublic() {
-    if (!noteId) { alert('Save the note first.'); return; }
     const next = !isPublic;
     setIsPublic(next);
-    await patchNote({ isPublic: next });
+    if (noteId) await patchNote({ isPublic: next });
   }
 
   // ── Pin toggle ────────────────────────────────────────────────────────────
   async function togglePin() {
-    if (!noteId) { alert('Save the note first.'); return; }
     const next = !isPinned;
     setIsPinned(next);
-    await patchNote({ isPinned: next });
+    if (noteId) await patchNote({ isPinned: next });
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -247,7 +246,7 @@ export default function NoteEditor() {
           borderColor: active ? '#2563eb' : 'var(--border)',
           background: active ? '#eff6ff' : 'var(--surface)',
           color: active ? '#2563eb' : 'var(--text)',
-          fontWeight: 600, fontSize: 13, cursor: 'pointer', lineHeight: 1.4,
+          fontWeight: 600, fontSize: 13, cursor: 'pointer', lineHeight: 1.4, whiteSpace: 'nowrap',
         }}
       >
         {label}
@@ -278,49 +277,85 @@ export default function NoteEditor() {
           </button>
 
           {/* Pin */}
-          {noteId && (
-            <button
-              onClick={togglePin}
-              title={isPinned ? 'Unpin note' : 'Pin note'}
-              style={{
-                background: isPinned ? '#fefce8' : 'transparent',
-                border: `1px solid ${isPinned ? '#fde047' : 'var(--border)'}`,
-                borderRadius: 7, padding: '4px 9px', cursor: 'pointer', fontSize: 15,
-              }}
-            >
-              📌
-            </button>
-          )}
+          <button
+            className="editor-pin-btn"
+            onClick={togglePin}
+            title={isPinned ? 'Unpin note' : 'Pin note'}
+            style={{
+              background: isPinned ? '#fefce8' : 'transparent',
+              border: `1px solid ${isPinned ? '#fde047' : 'var(--border)'}`,
+              borderRadius: 7, padding: '4px 9px', cursor: 'pointer', fontSize: 15,
+            }}
+          >
+            📌
+          </button>
 
           {/* Public toggle */}
-          {noteId && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{isPublic ? '🌐 Public' : '🔒 Private'}</span>
-              <button
-                onClick={togglePublic}
-                style={{
-                  width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
-                  background: isPublic ? '#2563eb' : '#d1d5db', position: 'relative', transition: 'background .2s',
-                }}
-              >
-                <span style={{
-                  position: 'absolute', top: 2, left: isPublic ? 20 : 2,
-                  width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                  transition: 'left .2s', display: 'block',
-                }} />
-              </button>
-            </div>
-          )}
+          <div className="editor-public-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{isPublic ? '🌐 Public' : '🔒 Private'}</span>
+            <button
+              onClick={togglePublic}
+              style={{
+                width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
+                background: isPublic ? '#2563eb' : '#d1d5db', position: 'relative', transition: 'background .2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: isPublic ? 20 : 2,
+                width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                transition: 'left .2s', display: 'block',
+              }} />
+            </button>
+          </div>
 
-          {isPublic && noteId && (
-            <button onClick={copyShareMessage} className="btn btn-ghost" style={{ fontSize: 13 }}>
+          {isPublic && (
+            <button onClick={copyShareMessage} className="btn btn-ghost editor-share-btn" style={{ fontSize: 13 }}>
               {copied ? '✓ Copied!' : '📤 Share'}
             </button>
           )}
 
-          <button onClick={deleteNote} className="btn btn-danger" style={{ fontSize: 13 }}>
+          <button onClick={deleteNote} className="btn btn-danger editor-delete-btn" style={{ fontSize: 13 }}>
             Delete
           </button>
+
+          {/* Three-dot overflow menu (mobile only) */}
+          <div className="editor-overflow-wrapper">
+            {editorMenuOpen && (
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                onClick={() => setEditorMenuOpen(false)}
+              />
+            )}
+            <button
+              className="editor-overflow-btn"
+              onClick={() => setEditorMenuOpen(o => !o)}
+              style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}
+            >
+              ···
+            </button>
+            {editorMenuOpen && (
+              <div className="editor-overflow-menu">
+                <button className="editor-overflow-menu-item" onClick={() => { togglePin(); setEditorMenuOpen(false); }}>
+                  <span>{isPinned ? 'Unpin note' : 'Pin note'}</span>
+                  <span>{isPinned ? '📌' : '📍'}</span>
+                </button>
+                <button className="editor-overflow-menu-item" onClick={() => { togglePublic(); setEditorMenuOpen(false); }}>
+                  <span>{isPublic ? 'Make private' : 'Make public'}</span>
+                  <span>{isPublic ? '🔒' : '🌐'}</span>
+                </button>
+                {isPublic && (
+                  <button className="editor-overflow-menu-item" onClick={() => { copyShareMessage(); setEditorMenuOpen(false); }}>
+                    <span>{copied ? '✓ Copied!' : 'Share'}</span>
+                    <span>📤</span>
+                  </button>
+                )}
+                <button className="editor-overflow-menu-item danger" onClick={() => { setEditorMenuOpen(false); deleteNote(); }}>
+                  <span>Delete note</span>
+                  <span>🗑</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

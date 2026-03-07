@@ -210,24 +210,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Mobile tab bar */}
-        <div className="tabs-mobile">
-          {(['mine', 'explore'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              flex: 1, padding: '8px 0', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: tab === t ? 600 : 400,
-              color: tab === t ? 'var(--accent)' : 'var(--text-2)',
-              borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
-              transition: 'color .15s, border-color .15s',
-            }}>
-              {t === 'mine' ? 'My Notes' : 'Explore'}
-            </button>
-          ))}
-        </div>
       </header>
 
       {/* ── Content ── */}
-      <main style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
+      <main className="dashboard-content" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
 
         {/* ─────────── MY NOTES TAB ─────────── */}
         {tab === 'mine' && (
@@ -240,7 +226,7 @@ export default function Dashboard() {
                 onChange={e => setSearch(e.target.value)}
                 style={{ flex: '1 1 160px', minWidth: 0 }}
               />
-              <button onClick={() => router.push('/notes/new')} className="btn btn-primary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <button onClick={() => router.push('/notes/new')} className="btn btn-primary new-note-btn" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                 + New Note
               </button>
             </div>
@@ -423,6 +409,30 @@ export default function Dashboard() {
           <img src={lightbox} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,.5)' }} />
         </div>
       )}
+
+      {/* ── FAB (mobile) ── */}
+      <button className="fab" onClick={() => router.push('/notes/new')} aria-label="New note">+</button>
+
+      {/* ── Bottom nav (mobile) ── */}
+      <nav className="bottom-nav">
+        <button className={tab === 'mine' ? 'active' : ''} onClick={() => setTab('mine')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          My Notes
+        </button>
+        <button className={tab === 'explore' ? 'active' : ''} onClick={() => setTab('explore')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+          Explore
+        </button>
+      </nav>
     </div>
   );
 }
