@@ -119,11 +119,14 @@ export default function NoteEditor() {
         const found = (data.notes ?? []).find((n: Note) => n._id === id);
         if (!found) { router.replace('/dashboard'); return; }
         setTitle(found.title === 'Untitled' ? '' : found.title);
-        setContent(found.content);
         setTags(found.tags);
         setIsPublic(found.isPublic);
         setIsPinned(found.isPinned ?? false);
-        editor?.commands.setContent(found.content);
+        // Ensure headings have a blank line before them so tiptap-markdown
+        // parses them as heading nodes (not literal "## text" paragraphs).
+        const fixedContent = found.content.replace(/\)\n?(#{1,6} )/g, ')\n\n$1');
+        setContent(fixedContent);
+        editor?.commands.setContent(fixedContent);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, editor]);

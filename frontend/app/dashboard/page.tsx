@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from '../theme-provider';
 
+const fixMd = (md: string) => md.replace(/\)\n?(#{1,6} )/g, ')\n\n$1');
+
 interface User { id: string; name: string; email: string; avatar: string; }
 interface Note {
   _id: string; title: string; content: string;
@@ -271,9 +273,9 @@ export default function Dashboard() {
                         <span style={{ fontSize: 13 }}>{note.isPublic ? '🌐' : '🔒'}</span>
                       </div>
                     </div>
-                    {note.content && (
+                    {fixMd(note.content) && (
                       <div className="card-preview card-preview--sm">
-                        <ReactMarkdown>{note.content}</ReactMarkdown>
+                        <ReactMarkdown>{fixMd(note.content)}</ReactMarkdown>
                       </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -321,9 +323,9 @@ export default function Dashboard() {
                     </div>
                     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                       <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{note.title}</h3>
-                      {note.content && (
+                      {fixMd(note.content) && (
                         <div className="card-preview card-preview--lg" style={{ marginBottom: 10 }}>
-                          <ReactMarkdown>{note.content}</ReactMarkdown>
+                          <ReactMarkdown>{fixMd(note.content)}</ReactMarkdown>
                         </div>
                       )}
                       {note.tags.length > 0 && (
@@ -379,7 +381,7 @@ export default function Dashboard() {
             {/* Modal content */}
             <div className="modal-content" ref={modalContentRef}>
               {previewNote.content
-                ? <ReactMarkdown>{previewNote.content}</ReactMarkdown>
+                ? <ReactMarkdown>{fixMd(previewNote.content)}</ReactMarkdown>
                 : <p style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>No content.</p>
               }
             </div>
