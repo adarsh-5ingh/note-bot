@@ -202,7 +202,7 @@ export default function NoteEditor() {
   function removeTag(tag: string) { setTags(tags.filter(t => t !== tag)); setSaved(false); }
 
   function copyShareMessage() {
-    navigator.clipboard.writeText(`Check out my note "${title}" on Notes app!`);
+    navigator.clipboard.writeText(`Check out my note "${title}" on Note Bot!`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

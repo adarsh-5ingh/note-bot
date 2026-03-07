@@ -16,19 +16,17 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 48, height: 48,
-            background: '#111827',
-            borderRadius: 12,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 16,
-            fontSize: 24,
-          }}>
-            📝
+          <div style={{ marginBottom: 16, display: 'inline-block' }}>
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="8" fill="#111827"/>
+              <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
+              <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
+              <rect x="8" y="19" width="9" height="2" rx="1" fill="white"/>
+              <circle cx="24" cy="22" r="4" fill="#2563eb"/>
+              <path d="M22.5 22l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Notes</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Note Bot</h1>
           <p style={{ fontSize: 14, color: 'var(--text-2)' }}>Your thoughts, beautifully organized</p>
         </div>
 

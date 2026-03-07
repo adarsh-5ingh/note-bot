@@ -133,7 +133,17 @@ export default function Dashboard() {
       <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
         <div className="topbar-inner">
           {/* Logo */}
-          <span style={{ fontWeight: 700, fontSize: 16 }}>Notes</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="8" fill="#111827"/>
+              <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
+              <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
+              <rect x="8" y="19" width="9" height="2" rx="1" fill="white"/>
+              <circle cx="24" cy="22" r="4" fill="#2563eb"/>
+              <path d="M22.5 22l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontWeight: 700, fontSize: 16 }}>Note Bot</span>
+          </div>
 
           {/* Desktop tabs */}
           <nav className="tabs-desktop" style={{ display: 'flex', gap: 2 }}>

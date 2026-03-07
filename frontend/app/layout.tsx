@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notes",
+  title: "Note Bot",
   description: "Your thoughts, beautifully organized",
 };
 
