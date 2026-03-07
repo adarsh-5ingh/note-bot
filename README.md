@@ -22,6 +22,7 @@ note-bot/
 - **Tags** — Add tags to notes, filter dashboard by tag
 - **Search** — Full-text search across title and content
 - **OAuth login** — Google, GitHub, Facebook via Passport.js + JWT
+- **Uptime monitoring** — UptimeRobot monitors backend availability, tracks response time, and sends alerts on downtime/recovery
 
 ## Tech Stack
 
@@ -33,6 +34,7 @@ note-bot/
 | Storage | Cloudinary (image uploads) |
 | Auth | OAuth 2.0 (Google, GitHub, Facebook) + JWT |
 | Deploy | Frontend: Vercel — Backend: Render |
+| Monitoring | UptimeRobot (uptime tracking, downtime alerts, response time) |
 
 ## Local Setup
 
