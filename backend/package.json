@@ -1,7 +1,7 @@
 {
-  "name": "oauth-practice-backend",
+  "name": "note-bot-backend",
   "version": "1.0.0",
-  "description": "OAuth 2.0 + Passport.js practice backend",
+  "description": "Note Bot — backend API",
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",

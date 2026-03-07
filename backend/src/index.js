@@ -63,7 +63,7 @@ app.use('/api', notesRoutes);
 app.use('/api', uploadRoutes);
 
 app.get('/', (req, res) => {
-  res.json({ message: 'OAuth Practice API is running' });
+  res.json({ message: 'Note Bot API is running' });
 });
 
 app.listen(PORT, () => {
