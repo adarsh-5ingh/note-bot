@@ -16,6 +16,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Note Bot",
   description: "Your thoughts, beautifully organized",
+  openGraph: {
+    title: "Note Bot",
+    description: "Your thoughts, beautifully organized",
+    url: "https://thenotebot.vercel.app",
+    siteName: "Note Bot",
+    images: [
+      {
+        url: "https://thenotebot.vercel.app/og-image.svg",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    type: "website",
+  },
 };
 
 export default function RootLayout({
