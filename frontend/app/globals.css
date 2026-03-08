@@ -53,6 +53,24 @@ a { color: inherit; text-decoration: none; }
   min-width: 0;
 }
 
+.glass-card {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, .07), inset 0 1px 0 rgba(255, 255, 255, .9);
+  min-width: 0;
+}
+
+[data-theme="dark"] .glass-card {
+  background: rgba(26, 29, 39, 0.52);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  box-shadow: 0 4px 28px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -162,13 +180,22 @@ a { color: inherit; text-decoration: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .modal-box {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 14px;
   width: 100%; max-width: 640px;
   max-height: 85vh;
   display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.95);
   animation: slideUp .18s ease;
+}
+
+[data-theme="dark"] .modal-box {
+  background: rgba(26, 29, 39, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -322,6 +349,18 @@ a { color: inherit; text-decoration: none; }
 /* ── FAB (mobile only) ──────────────────────────────────── */
 .fab { display: none; }
 
+/* ── Desktop-only add button (hidden on mobile) ─────────── */
+.hide-on-mobile { display: block; }
+
+/* ── Tasks FAB (always visible, lifts above bottom nav on mobile) ── */
+.tasks-fab {
+  display: flex; align-items: center; justify-content: center;
+  position: fixed; bottom: 32px; right: 32px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 28px; line-height: 1;
+  border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(37,99,235,.4); z-index: 49;
+}
+
 /* ── Editor overflow menu ───────────────────────────────── */
 .editor-overflow-btn { display: none; }
 .editor-overflow-wrapper { position: relative; }
@@ -349,6 +388,8 @@ a { color: inherit; text-decoration: none; }
 
   .controls-row { gap: 8px; }
   .new-note-btn { display: none !important; }
+  .hide-on-mobile { display: none !important; }
+  .tasks-fab { bottom: 72px; }
 
   .notes-grid { grid-template-columns: 1fr; }
   .dashboard-content { padding-bottom: 80px; }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from '../theme-provider';
 
@@ -19,16 +19,20 @@ interface FeedNote extends Note {
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   const [user, setUser]           = useState<User | null>(null);
-  const [tab, setTab]             = useState<'mine' | 'explore'>('mine');
+  const [tab, setTab]             = useState<'mine' | 'explore'>(
+    searchParams.get('tab') === 'explore' ? 'explore' : 'mine'
+  );
   const [notes, setNotes]         = useState<Note[]>([]);
   const [allTags, setAllTags]     = useState<string[]>([]);
   const [feed, setFeed]           = useState<FeedNote[]>([]);
   const [search, setSearch]       = useState('');
   const [activeTag, setActiveTag] = useState('');
   const [menuOpen, setMenuOpen]     = useState(false);
+  const [pendingTasks, setPendingTasks] = useState(0);
   const [previewNote, setPreviewNote] = useState<Note | FeedNote | null>(null);
   const [lightbox, setLightbox]     = useState<string | null>(null);
   const menuRef                     = useRef<HTMLDivElement>(null);
@@ -75,7 +79,15 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API]);
 
-  useEffect(() => { if (user) fetchNotes(); }, [user, fetchNotes]);
+  useEffect(() => {
+    if (!user) return;
+    fetchNotes();
+    fetch(`${API}/api/tasks`, { headers: authHeader() })
+      .then(r => r.ok ? r.json() : [])
+      .then((tasks: { completed: boolean }[]) => setPendingTasks(tasks.filter(t => !t.completed).length))
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
   useEffect(() => { if (tab === 'explore' && user) fetchFeed(); }, [tab, user, fetchFeed]);
 
   // ── Debounced search ─────────────────────────────────────────────────────
@@ -157,6 +169,24 @@ export default function Dashboard() {
                 {t === 'mine' ? 'My Notes' : 'Explore'}
               </button>
             ))}
+            <button onClick={() => router.push('/tasks')} style={{
+              padding: '5px 12px', borderRadius: 7, border: 'none',
+              background: 'transparent', fontWeight: 400,
+              fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              Tasks
+              {pendingTasks > 0 && (
+                <span style={{ background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 99, padding: '0 5px', lineHeight: '16px', minWidth: 16, textAlign: 'center' }}>
+                  {pendingTasks}
+                </span>
+              )}
+            </button>
+            <button onClick={() => router.push('/expenses')} style={{
+              padding: '5px 12px', borderRadius: 7, border: 'none',
+              background: 'transparent', fontWeight: 400,
+              fontSize: 13, cursor: 'pointer', color: 'var(--text)',
+            }}>Expenses</button>
           </nav>
 
           {/* Right side */}
@@ -421,9 +451,8 @@ export default function Dashboard() {
             <polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/>
             <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
           </svg>
-          My Notes
+          Notes
         </button>
         <button className={tab === 'explore' ? 'active' : ''} onClick={() => setTab('explore')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -431,6 +460,25 @@ export default function Dashboard() {
             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
           </svg>
           Explore
+        </button>
+        <button onClick={() => router.push('/tasks')} style={{ position: 'relative' }}>
+          {pendingTasks > 0 && (
+            <span style={{ position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center', lineHeight: '14px' }}>
+              {pendingTasks > 99 ? '99+' : pendingTasks}
+            </span>
+          )}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Tasks
+        </button>
+        <button onClick={() => router.push('/expenses')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          Expenses
         </button>
       </nav>
     </div>
