@@ -461,16 +461,18 @@ function DashboardInner() {
           </svg>
           Explore
         </button>
-        <button onClick={() => router.push('/tasks')} style={{ position: 'relative' }}>
-          {pendingTasks > 0 && (
-            <span style={{ position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center', lineHeight: '14px' }}>
-              {pendingTasks > 99 ? '99+' : pendingTasks}
-            </span>
-          )}
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 11l3 3L22 4"/>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
+        <button onClick={() => router.push('/tasks')}>
+          <div style={{ position: 'relative', width: 20, height: 20 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            {pendingTasks > 0 && (
+              <span style={{ position: 'absolute', top: -5, right: -6, background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center', lineHeight: '14px', pointerEvents: 'none' }}>
+                {pendingTasks > 99 ? '99+' : pendingTasks}
+              </span>
+            )}
+          </div>
           Tasks
         </button>
         <button onClick={() => router.push('/expenses')}>

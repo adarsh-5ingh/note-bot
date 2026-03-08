@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../theme-provider';
+import BottomNav from '../components/BottomNav';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -686,33 +687,7 @@ export default function ExpensesPage() {
       <button onClick={openAdd} aria-label="Add expense" className="tasks-fab">+</button>
 
       {/* ── Bottom nav ── */}
-      <nav className="bottom-nav">
-        <button onClick={() => router.push('/dashboard')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          Notes
-        </button>
-        <button onClick={() => router.push('/dashboard?tab=explore')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-          </svg>
-          Explore
-        </button>
-        <button onClick={() => router.push('/tasks')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
-          Tasks
-        </button>
-        <button className="active">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          Expenses
-        </button>
-      </nav>
+      <BottomNav active="expenses" />
 
       {/* ── Add / Edit Sheet ── */}
       {addOpen && (
