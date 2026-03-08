@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from '../theme-provider';
@@ -17,7 +17,7 @@ interface FeedNote extends Note {
   userId: { name: string; avatar: string };
 }
 
-export default function Dashboard() {
+function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -482,6 +482,14 @@ export default function Dashboard() {
         </button>
       </nav>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense>
+      <DashboardInner />
+    </Suspense>
   );
 }
 
