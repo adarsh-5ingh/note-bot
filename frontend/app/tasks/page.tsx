@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '../theme-provider';
-import BottomNav from '../components/BottomNav';
+import { useAppContext } from '../context/AppContext';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   DragEndEvent,
@@ -86,7 +85,7 @@ const GROUP_ORDER = ['overdue', 'today', 'tomorrow', 'upcoming', 'noDate', 'comp
 export default function TasksPage() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { refreshTasks } = useAppContext();
 
   const [tasks, setTasks]   = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +123,14 @@ export default function TasksPage() {
     fetchTasks();
   }, [fetchTasks, router]);
 
+  // Listen for FAB click dispatched by AppShell
+  useEffect(() => {
+    const handler = () => openAdd();
+    document.addEventListener('app:fab', handler);
+    return () => document.removeEventListener('app:fab', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeSheet(); };
     document.addEventListener('keydown', onKey);
@@ -159,7 +166,7 @@ export default function TasksPage() {
       const res = await fetch(`${API}/api/tasks`, { method: 'POST', headers: authHeader(), body: JSON.stringify(body) });
       if (res.ok) { const c = await res.json(); setTasks(p => [c, ...p]); }
     }
-    setSaving(false); closeSheet();
+    setSaving(false); closeSheet(); refreshTasks();
   }
 
   async function toggleComplete(task: Task) {
@@ -170,6 +177,7 @@ export default function TasksPage() {
     if (res.ok) {
       const updated = await res.json();
       setTasks(p => p.map(t => t._id === updated._id ? updated : t));
+      refreshTasks();
       // If recurring task was completed, a new one was created — refetch
       if (!task.completed && task.recurrence !== 'none') fetchTasks();
     }
@@ -177,7 +185,7 @@ export default function TasksPage() {
 
   async function deleteTask(id: string) {
     const res = await fetch(`${API}/api/tasks/${id}`, { method: 'DELETE', headers: authHeader() });
-    if (res.ok) setTasks(p => p.filter(t => t._id !== id));
+    if (res.ok) { setTasks(p => p.filter(t => t._id !== id)); refreshTasks(); }
     closeSheet();
   }
 
@@ -216,39 +224,6 @@ export default function TasksPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-      {/* ── Topbar ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="topbar-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="#111827"/>
-              <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
-              <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
-              <rect x="8" y="19" width="9" height="2" rx="1" fill="white"/>
-              <circle cx="24" cy="22" r="4" fill="#2563eb"/>
-              <path d="M22.5 22l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span style={{ fontWeight: 700, fontSize: 16 }}>Note Bot</span>
-          </div>
-
-          <nav className="tabs-desktop" style={{ display: 'flex', gap: 2 }}>
-            <button onClick={() => router.push('/dashboard')} style={tabBtn(false)}>My Notes</button>
-            <button onClick={() => router.push('/dashboard?tab=explore')} style={tabBtn(false)}>Explore</button>
-            <button style={tabBtn(true)}>
-              Tasks {pendingCount > 0 && <span style={badgeStyle}>{pendingCount}</span>}
-            </button>
-            <button onClick={() => router.push('/expenses')} style={tabBtn(false)}>Expenses</button>
-          </nav>
-
-          <div className="topbar-right">
-            <button onClick={toggleTheme} title="Toggle dark mode"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, padding: '2px 4px', lineHeight: 1 }}>
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          </div>
-        </div>
-      </header>
 
       {/* ── Content ── */}
       <main style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px', paddingBottom: 100 }}>
@@ -301,11 +276,6 @@ export default function TasksPage() {
         )}
       </main>
 
-      {/* ── FAB ── */}
-      <button onClick={openAdd} aria-label="Add task" className="tasks-fab">+</button>
-
-      {/* ── Bottom nav (mobile) ── */}
-      <BottomNav active="tasks" />
 
       {/* ── Add / Edit Sheet ── */}
       {addOpen && (
@@ -530,13 +500,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-function tabBtn(active: boolean): React.CSSProperties {
-  return { padding: '5px 12px', borderRadius: 7, border: 'none', background: active ? 'var(--border)' : 'transparent', fontWeight: active ? 600 : 400, fontSize: 13, cursor: 'pointer', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: 5 };
-}
-const badgeStyle: React.CSSProperties = {
-  background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700,
-  borderRadius: 99, padding: '0 5px', lineHeight: '16px', minWidth: 16, textAlign: 'center',
-};
 const lbl: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-2)',
   marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.04em',

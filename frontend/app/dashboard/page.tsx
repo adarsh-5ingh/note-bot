@@ -3,11 +3,10 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
-import { useTheme } from '../theme-provider';
+import { useAppContext } from '../context/AppContext';
 
 const fixMd = (md: string) => md.replace(/\)\n?(#{1,6} )/g, ')\n\n$1');
 
-interface User { id: string; name: string; email: string; avatar: string; }
 interface Note {
   _id: string; title: string; content: string;
   tags: string[]; isPublic: boolean; updatedAt: string;
@@ -22,38 +21,21 @@ function DashboardInner() {
   const searchParams = useSearchParams();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  const [user, setUser]           = useState<User | null>(null);
-  const [tab, setTab]             = useState<'mine' | 'explore'>(
-    searchParams.get('tab') === 'explore' ? 'explore' : 'mine'
-  );
+  const { user } = useAppContext();
+  const tab = searchParams.get('tab') === 'explore' ? 'explore' : 'mine';
   const [notes, setNotes]         = useState<Note[]>([]);
   const [allTags, setAllTags]     = useState<string[]>([]);
   const [feed, setFeed]           = useState<FeedNote[]>([]);
   const [search, setSearch]       = useState('');
   const [activeTag, setActiveTag] = useState('');
-  const [menuOpen, setMenuOpen]     = useState(false);
-  const [pendingTasks, setPendingTasks] = useState(0);
   const [previewNote, setPreviewNote] = useState<Note | FeedNote | null>(null);
   const [lightbox, setLightbox]     = useState<string | null>(null);
-  const menuRef                     = useRef<HTMLDivElement>(null);
   const modalContentRef             = useRef<HTMLDivElement>(null);
-  const { theme, toggle: toggleTheme } = useTheme();
 
   function authHeader() {
     const token = localStorage.getItem('auth_token');
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   }
-
-  // ── Load user ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) { router.replace('/'); return; }
-    fetch(`${API}/auth/me`, { headers: authHeader() })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(d => setUser(d.user))
-      .catch(() => { localStorage.removeItem('auth_token'); router.replace('/'); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Fetch notes ──────────────────────────────────────────────────────────
   const fetchNotes = useCallback(async (q = '', tag = '') => {
@@ -82,10 +64,6 @@ function DashboardInner() {
   useEffect(() => {
     if (!user) return;
     fetchNotes();
-    fetch(`${API}/api/tasks`, { headers: authHeader() })
-      .then(r => r.ok ? r.json() : [])
-      .then((tasks: { completed: boolean }[]) => setPendingTasks(tasks.filter(t => !t.completed).length))
-      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
   useEffect(() => { if (tab === 'explore' && user) fetchFeed(); }, [tab, user, fetchFeed]);
@@ -95,17 +73,6 @@ function DashboardInner() {
     const t = setTimeout(() => fetchNotes(search, activeTag), 350);
     return () => clearTimeout(t);
   }, [search, activeTag, fetchNotes]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   // Close lightbox or preview modal on Escape
   useEffect(() => {
@@ -130,117 +97,10 @@ function DashboardInner() {
     return () => el.removeEventListener('click', onClick);
   });
 
-  async function logout() {
-    localStorage.removeItem('auth_token');
-    try { await fetch(`${API}/auth/logout`, { credentials: 'include' }); } catch (_) {}
-    router.replace('/');
-  }
-
   if (!user) return <div style={centered}>Loading...</div>;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-      {/* ── Topbar ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="topbar-inner">
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="#111827"/>
-              <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
-              <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
-              <rect x="8" y="19" width="9" height="2" rx="1" fill="white"/>
-              <circle cx="24" cy="22" r="4" fill="#2563eb"/>
-              <path d="M22.5 22l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span style={{ fontWeight: 700, fontSize: 16 }}>Note Bot</span>
-          </div>
-
-          {/* Desktop tabs */}
-          <nav className="tabs-desktop" style={{ display: 'flex', gap: 2 }}>
-            {(['mine', 'explore'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{
-                padding: '5px 12px', borderRadius: 7, border: 'none',
-                background: tab === t ? 'var(--border)' : 'transparent',
-                fontWeight: tab === t ? 600 : 400,
-                fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              }}>
-                {t === 'mine' ? 'My Notes' : 'Explore'}
-              </button>
-            ))}
-            <button onClick={() => router.push('/tasks')} style={{
-              padding: '5px 12px', borderRadius: 7, border: 'none',
-              background: 'transparent', fontWeight: 400,
-              fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-            }}>
-              Tasks
-              {pendingTasks > 0 && (
-                <span style={{ background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 99, padding: '0 5px', lineHeight: '16px', minWidth: 16, textAlign: 'center' }}>
-                  {pendingTasks}
-                </span>
-              )}
-            </button>
-            <button onClick={() => router.push('/expenses')} style={{
-              padding: '5px 12px', borderRadius: 7, border: 'none',
-              background: 'transparent', fontWeight: 400,
-              fontSize: 13, cursor: 'pointer', color: 'var(--text)',
-            }}>Expenses</button>
-          </nav>
-
-          {/* Right side */}
-          <div className="topbar-right">
-            <button
-              onClick={toggleTheme}
-              title="Toggle dark mode"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, padding: '2px 4px', lineHeight: 1 }}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            <span className="hide-sm" style={{ fontSize: 13, color: 'var(--text-2)' }}>{user.name}</span>
-
-            {/* Avatar + dropdown */}
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setMenuOpen(o => !o)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-              >
-                {user.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.avatar} alt="" referrerPolicy="no-referrer"
-                    style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-                ) : (
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14 }}>
-                    {user.name?.[0] ?? '?'}
-                  </div>
-                )}
-              </button>
-
-              {menuOpen && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                  background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,.12)',
-                  minWidth: 160, overflow: 'hidden', zIndex: 100,
-                }}>
-                  <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-                    <p style={{ fontSize: 13, fontWeight: 600 }}>{user.name}</p>
-                    <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{user.email}</p>
-                  </div>
-                  <button
-                    onClick={() => { setMenuOpen(false); logout(); }}
-                    style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: '#dc2626' }}
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </header>
 
       {/* ── Content ── */}
       <main className="dashboard-content" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
@@ -440,49 +300,7 @@ function DashboardInner() {
         </div>
       )}
 
-      {/* ── FAB (mobile) ── */}
-      <button className="fab" onClick={() => router.push('/notes/new')} aria-label="New note">+</button>
 
-      {/* ── Bottom nav (mobile) ── */}
-      <nav className="bottom-nav">
-        <button className={tab === 'mine' ? 'active' : ''} onClick={() => setTab('mine')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-          Notes
-        </button>
-        <button className={tab === 'explore' ? 'active' : ''} onClick={() => setTab('explore')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-          </svg>
-          Explore
-        </button>
-        <button onClick={() => router.push('/tasks')}>
-          <div style={{ position: 'relative', width: 20, height: 20 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-            {pendingTasks > 0 && (
-              <span style={{ position: 'absolute', top: -5, right: -6, background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 99, padding: '1px 4px', minWidth: 14, textAlign: 'center', lineHeight: '14px', pointerEvents: 'none' }}>
-                {pendingTasks > 99 ? '99+' : pendingTasks}
-              </span>
-            )}
-          </div>
-          Tasks
-        </button>
-        <button onClick={() => router.push('/expenses')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          Expenses
-        </button>
-      </nav>
     </div>
   );
 }

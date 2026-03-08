@@ -1,25 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAppContext } from '../context/AppContext';
 
 type ActiveTab = 'notes' | 'explore' | 'tasks' | 'expenses';
 
 export default function BottomNav({ active }: { active: ActiveTab }) {
   const router = useRouter();
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const [pendingTasks, setPendingTasks] = useState(0);
-
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-    fetch(`${API}/api/tasks`, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then((tasks: { completed: boolean }[]) => setPendingTasks(tasks.filter(t => !t.completed).length))
-      .catch(() => {});
-  }, [API]);
+  const { pendingTasks } = useAppContext();
 
   return (
     <nav className="bottom-nav">
