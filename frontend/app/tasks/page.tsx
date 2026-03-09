@@ -489,10 +489,10 @@ function TaskRow({ task, onToggle, onEdit, dragHandleProps }: {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 80, color: 'var(--text-3)' }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
-      <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }}>No tasks yet</p>
-      <p style={{ fontSize: 13, marginBottom: 24 }}>Tap + to add your first task</p>
+    <div className="empty-state">
+      <div className="empty-state-icon">✅</div>
+      <p className="empty-state-title">No tasks yet</p>
+      <p className="empty-state-sub">Add your first task — set a due date, priority, and label to stay organised</p>
       <button onClick={onAdd} className="btn btn-primary">+ Add Task</button>
     </div>
   );

@@ -521,9 +521,10 @@ export default function ExpensesPage() {
         {view === 'analytics' && (
           <>
             {!loading && expenses.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: 60, color: 'var(--text-3)' }}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>📊</div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-2)' }}>No data yet</p>
+              <div className="empty-state">
+                <div className="empty-state-icon">📊</div>
+                <p className="empty-state-title">No data yet</p>
+                <p className="empty-state-sub">Add some expenses to see your spending breakdown and analytics</p>
               </div>
             ) : (
               <>
@@ -802,12 +803,13 @@ function typeColor(t: string) {
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function EmptyState({ onAdd, hasFilter }: { onAdd: () => void; hasFilter: boolean }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 50, color: 'var(--text-3)' }}>
-      <div style={{ fontSize: 36, marginBottom: 12 }}>💸</div>
-      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>
-        {hasFilter ? 'No matching entries' : 'No entries this month'}
+    <div className="empty-state">
+      <div className="empty-state-icon">{hasFilter ? '🔍' : '💰'}</div>
+      <p className="empty-state-title">{hasFilter ? 'No matching entries' : 'No entries this month'}</p>
+      <p className="empty-state-sub">
+        {hasFilter ? 'Try clearing your filters to see all entries' : 'Start tracking by logging your first expense, income or investment'}
       </p>
-      {!hasFilter && <button onClick={onAdd} className="btn btn-primary" style={{ marginTop: 12, fontSize: 12 }}>+ Add</button>}
+      {!hasFilter && <button onClick={onAdd} className="btn btn-primary">+ Add Entry</button>}
     </div>
   );
 }

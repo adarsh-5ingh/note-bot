@@ -23,6 +23,13 @@ function DashboardInner() {
 
   const { user } = useAppContext();
   const tab = searchParams.get('tab') === 'explore' ? 'explore' : 'mine';
+  const [welcomed, setWelcomed] = useState(
+    () => typeof window !== 'undefined' && !!localStorage.getItem('notebot_welcomed')
+  );
+  function dismissWelcome() {
+    localStorage.setItem('notebot_welcomed', '1');
+    setWelcomed(true);
+  }
   const [notes, setNotes]         = useState<Note[]>([]);
   const [allTags, setAllTags]     = useState<string[]>([]);
   const [feed, setFeed]           = useState<FeedNote[]>([]);
@@ -102,6 +109,49 @@ function DashboardInner() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
+      {/* ── Welcome modal (first-time users) ── */}
+      {!welcomed && (
+        <div className="modal-backdrop" onClick={dismissWelcome}>
+          <div className="modal-box" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+                  <rect width="32" height="32" rx="8" fill="#111827"/>
+                  <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
+                  <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
+                  <rect x="8" y="19" width="9" height="2" rx="1" fill="white"/>
+                  <circle cx="24" cy="22" r="4" fill="#2563eb"/>
+                  <path d="M22.5 22l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontWeight: 700, fontSize: 16 }}>Welcome to Note Bot 👋</span>
+              </div>
+              <button onClick={dismissWelcome} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-3)', lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>
+            </div>
+            <div className="modal-content">
+              <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 14 }}>Here&apos;s everything you can do:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { icon: '📝', title: 'Notes', desc: 'Capture ideas and write in markdown — keep them private or share publicly' },
+                  { icon: '✅', title: 'Tasks', desc: 'Track to-dos with due dates, priorities, labels and subtasks' },
+                  { icon: '💰', title: 'Expenses', desc: 'Log spending, income and investments and view monthly analytics' },
+                ].map(f => (
+                  <div key={f.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 8 }}>
+                    <span style={{ fontSize: 20, lineHeight: 1, marginTop: 1 }}>{f.icon}</span>
+                    <div>
+                      <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{f.title}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.4 }}>{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={dismissWelcome} className="btn btn-primary" style={{ width: '100%' }}>Get started →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Content ── */}
       <main className="dashboard-content" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
 
@@ -137,9 +187,15 @@ function DashboardInner() {
             )}
 
             {notes.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: 80, color: 'var(--text-3)' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-                <p style={{ fontSize: 15 }}>{search || activeTag ? 'No notes match your search.' : 'No notes yet. Create your first one!'}</p>
+              <div className="empty-state">
+                <div className="empty-state-icon">{search || activeTag ? '🔍' : '📝'}</div>
+                <p className="empty-state-title">{search || activeTag ? 'No matching notes' : 'No notes yet'}</p>
+                <p className="empty-state-sub">
+                  {search || activeTag ? 'Try a different search term or tag' : 'Tap + to capture your first idea'}
+                </p>
+                {!search && !activeTag && (
+                  <button onClick={() => router.push('/notes/new')} className="btn btn-primary">+ New Note</button>
+                )}
               </div>
             ) : (
               <div className="notes-grid">
@@ -183,9 +239,10 @@ function DashboardInner() {
         {tab === 'explore' && (
           <div style={{ maxWidth: 600, margin: '0 auto' }}>
             {feed.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: 80, color: 'var(--text-3)' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🌐</div>
-                <p style={{ fontSize: 15 }}>No public notes yet. Be the first to share one!</p>
+              <div className="empty-state">
+                <div className="empty-state-icon">🌐</div>
+                <p className="empty-state-title">Nothing here yet</p>
+                <p className="empty-state-sub">Be the first to make a note public and share it with the world</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
