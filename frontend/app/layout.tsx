@@ -32,6 +32,12 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
+  themeColor: "#111827",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Note Bot",
+  },
 };
 
 export default function RootLayout({
