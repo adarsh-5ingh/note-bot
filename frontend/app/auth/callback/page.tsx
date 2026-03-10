@@ -34,7 +34,7 @@ function AuthCallbackInner() {
 
     if (token) {
       localStorage.setItem('auth_token', token);
-      router.replace('/dashboard');
+      window.location.replace('/dashboard');
     } else {
       router.replace('/');
     }
