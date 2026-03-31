@@ -1,12 +1,10 @@
-'use client';
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { useEffect } from "react";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { AppContextProvider } from "./context/AppContext";
 import AppShell from "./components/AppShell";
+import ServiceWorkerRegister from "./components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,15 +52,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
-  }, []);
-
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <ServiceWorkerRegister />
         <ThemeProvider><AppContextProvider><AppShell>{children}</AppShell></AppContextProvider></ThemeProvider>
       </body>
     </html>
