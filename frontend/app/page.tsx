@@ -1,5 +1,35 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from './context/AppContext';
+
 export default function LoginPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAppContext();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.replace('/dashboard');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg)',
+      }}>
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div style={{
