@@ -10,7 +10,7 @@ function signJwt(user) {
   return jwt.sign(
     { id: user._id, email: user.email, name: user.name, avatar: user.avatar },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
   );
 }
 

@@ -21,7 +21,15 @@ function DashboardInner() {
   const searchParams = useSearchParams();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  const { user } = useAppContext();
+  const { user, isLoading, authError } = useAppContext();
+
+  // Redirect to login if auth fails
+  useEffect(() => {
+    if (!user && authError) {
+      router.replace('/');
+    }
+  }, [user, authError, router]);
+
   const tab = searchParams.get('tab') === 'explore' ? 'explore' : 'mine';
   const [welcomed, setWelcomed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('notebot_welcomed')
@@ -104,7 +112,9 @@ function DashboardInner() {
     return () => el.removeEventListener('click', onClick);
   });
 
-  if (!user) return <div style={centered}>Loading...</div>;
+  if (!user && isLoading) return <div style={centered}>Loading...</div>;
+  if (!user && authError) return <div style={centered}>Authenticating...</div>; // Will redirect via useEffect
+  if (!user) return null;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>

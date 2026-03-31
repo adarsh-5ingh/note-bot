@@ -12,6 +12,8 @@ interface AppUser {
 
 interface AppContextValue {
   user: AppUser | null;
+  isLoading: boolean;
+  authError: string | null;
   pendingTasks: number;
   refreshTasks: () => void;
   logout: () => void;
@@ -19,6 +21,8 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue>({
   user: null,
+  isLoading: true,
+  authError: null,
   pendingTasks: 0,
   refreshTasks: () => {},
   logout: () => {},
@@ -32,6 +36,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   const [user, setUser] = useState<AppUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [pendingTasks, setPendingTasks] = useState(0);
   const didFetch = useRef(false);
 
@@ -56,8 +62,12 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (didFetch.current) return;
     const token = localStorage.getItem('auth_token');
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     didFetch.current = true;
+    setIsLoading(true);
 
     // Try sessionStorage cache first (avoids flash on navigation)
     const cached = sessionStorage.getItem('app_user');
@@ -65,15 +75,43 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       try { setUser(JSON.parse(cached)); } catch (_) {}
     }
 
+    // Set timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setAuthError('Connection timeout. Please try again.');
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     fetch(`${API}/auth/me`, { headers: authHeader() })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.ok) return r.json();
+        if (r.status === 401) {
+          // Token expired - clear and redirect
+          localStorage.removeItem('auth_token');
+          sessionStorage.removeItem('app_user');
+          throw new Error('Session expired');
+        }
+        throw new Error('Auth failed');
+      })
       .then(d => {
         if (d?.user) {
           setUser(d.user);
           sessionStorage.setItem('app_user', JSON.stringify(d.user));
+          setAuthError(null);
         }
       })
-      .catch(() => {});
+      .catch(err => {
+        console.error('Auth error:', err);
+        // Try using cached user if available
+        if (!cached) {
+          setAuthError(err.message || 'Authentication failed');
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      });
 
     fetchTasks();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +121,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     localStorage.removeItem('auth_token');
     sessionStorage.removeItem('app_user');
     setUser(null);
+    setAuthError(null);
+    setIsLoading(false);
     setPendingTasks(0);
     didFetch.current = false;
     try { fetch(`${API}/auth/logout`, { credentials: 'include' }); } catch (_) {}
@@ -90,7 +130,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <AppContext.Provider value={{ user, pendingTasks, refreshTasks: fetchTasks, logout }}>
+    <AppContext.Provider value={{ user, isLoading, authError, pendingTasks, refreshTasks: fetchTasks, logout }}>
       {children}
     </AppContext.Provider>
   );
