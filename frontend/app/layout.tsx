@@ -1,5 +1,8 @@
+'use client';
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { useEffect } from "react";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { AppContextProvider } from "./context/AppContext";
@@ -40,11 +43,23 @@ export const metadata: Metadata = {
   },
 };
 
+export const icon = {
+  url: '/icon-512.png',
+  sizes: '512x512',
+  type: 'image/png',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  }, []);
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
