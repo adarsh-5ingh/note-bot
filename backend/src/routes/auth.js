@@ -16,14 +16,22 @@ function signJwt(user) {
 
 // After OAuth succeeds, redirect to Next.js with the JWT as a query param.
 // The Next.js /auth/callback page will read it and store it.
+// When ?mobile=true was passed at OAuth initiation, redirect to the deep link instead.
 function handleCallback(req, res) {
   const token = signJwt(req.user);
+  if (req.session.isMobile) {
+    delete req.session.isMobile;
+    return res.redirect(`notebot://auth-callback?token=${token}`);
+  }
   const clientUrl = process.env.CLIENT_URL_PROD || process.env.CLIENT_URL;
   res.redirect(`${clientUrl}/auth/callback?token=${token}`);
 }
 
 // ─── Google ──────────────────────────────────────────────────────────────────
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
+router.get('/google', (req, res, next) => {
+  if (req.query.mobile) req.session.isMobile = true;
+  passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next);
+});
 
 router.get(
   '/google/callback',
@@ -32,7 +40,10 @@ router.get(
 );
 
 // ─── GitHub ──────────────────────────────────────────────────────────────────
-router.get('/github', passport.authenticate('github'));
+router.get('/github', (req, res, next) => {
+  if (req.query.mobile) req.session.isMobile = true;
+  passport.authenticate('github')(req, res, next);
+});
 
 router.get(
   '/github/callback',
@@ -41,7 +52,10 @@ router.get(
 );
 
 // ─── Facebook ────────────────────────────────────────────────────────────────
-router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+router.get('/facebook', (req, res, next) => {
+  if (req.query.mobile) req.session.isMobile = true;
+  passport.authenticate('facebook', { scope: ['email'] })(req, res, next);
+});
 
 router.get(
   '/facebook/callback',
