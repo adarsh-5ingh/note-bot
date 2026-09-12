@@ -12,6 +12,8 @@ process.env.JWT_SECRET = 'shortcut-test-secret-only';
 async function fixture(t) {
   const credentialStore = new Map();
   const expenseStore = new Map();
+  const settingsStore = new Map();
+  const settings = { async findOne(query) { return settingsStore.get(query.userId) || null; } };
   let failWrites = false;
   const credentials = {
     async findOne(query) {
@@ -40,7 +42,7 @@ async function fixture(t) {
   // Match production: these routers precede Shortcuts and must not intercept it.
   app.use('/api', require('../src/routes/protected'));
   app.use('/api', require('../src/routes/notes'));
-  app.use('/api', createShortcutRouter({ credentials, expenses }));
+  app.use('/api', createShortcutRouter({ credentials, expenses, settings }));
   app.get('/private', verifyToken, (_req, res) => res.json({ ok: true }));
   const server = await new Promise((resolve, reject) => {
     const s = app.listen(0, '127.0.0.1', error => error ? reject(error) : resolve(s));
@@ -55,7 +57,7 @@ async function fixture(t) {
   }
   const login = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   async function connect(id = 'user-a') { return (await call('/api/shortcuts/credential', 'POST', login(id))).data.token; }
-  return { call, connect, login, credentialStore, expenseStore, fail: () => { failWrites = true; } };
+  return { call, connect, login, credentialStore, expenseStore, settingsStore, fail: () => { failWrites = true; } };
 }
 
 const payload = { amount: 150.5, description: ' Lunch ', date: '2026-09-12', requestId: 'ae80bf79-9a77-4714-a3ca-86ec05c95939' };
@@ -98,7 +100,7 @@ test('rejects expired credentials and normal login JWTs at expense-only endpoint
 test('save is scoped to credential owner, preserves local calendar date and deduplicates retries', async t => {
   const f = await fixture(t);
   const token = await f.connect();
-  const response = await f.call('/api/shortcuts/expenses', 'POST', token, { ...payload, userId: 'victim', type: 'income', category: 'food' });
+  const response = await f.call('/api/shortcuts/expenses', 'POST', token, { ...payload, userId: 'victim', type: 'income' });
   assert.equal(response.status, 201);
   assert.equal(response.data.saved, true);
   const expense = [...f.expenseStore.values()][0];
@@ -148,4 +150,32 @@ test('database schema enforces uniqueness only on expenses with Shortcut request
   assert.deepEqual(index[0], { userId: 1, shortcutRequestId: 1 });
   assert.equal(index[1].unique, true);
   assert.deepEqual(index[1].partialFilterExpression, { shortcutRequestId: { $type: 'string' } });
+});
+
+
+test('categories use defaults or owner custom settings and participate in retry conflicts', async t => {
+  const f = await fixture(t);
+  const token = await f.connect();
+  const send = (body) => f.call('/api/shortcuts/expenses', 'POST', token, body);
+  assert.equal((await send({ ...payload, category: 'unknown' })).status, 400);
+  assert.equal((await send({ ...payload, category: ['food'] })).status, 400);
+  const first = await send({ ...payload, category: 'food' });
+  assert.equal(first.status, 201);
+  assert.equal(first.data.category, 'food');
+  assert.equal((await send({ ...payload, category: 'food' })).status, 200);
+  assert.equal((await send({ ...payload, category: 'dining' })).status, 409);
+  assert.equal((await send(payload)).status, 409);
+  f.settingsStore.set('user-a', { categories: [{ key: 'custom-groceries', label: 'Groceries' }] });
+  f.settingsStore.set('user-b', { categories: [{ key: 'private-category', label: 'Private' }] });
+  // A previously saved request can still be replayed after its category is removed.
+  assert.equal((await send({ ...payload, category: 'food' })).status, 200);
+  const next = { ...payload, requestId: 'de80bf79-9a77-4714-a3ca-86ec05c95939' };
+  assert.equal((await send({ ...next, category: 'food' })).status, 400);
+  assert.equal((await send({ ...next, category: 'private-category' })).status, 400);
+  const custom = await send({ ...next, category: 'custom-groceries' });
+  assert.equal(custom.status, 201);
+  assert.equal(custom.data.category, 'custom-groceries');
+  const old = { ...payload, requestId: 'ce80bf79-9a77-4714-a3ca-86ec05c95939' };
+  assert.equal((await send(old)).status, 201);
+  assert.equal((await send({ ...old, category: 'other' })).status, 200);
 });

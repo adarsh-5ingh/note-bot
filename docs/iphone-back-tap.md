@@ -8,7 +8,7 @@
 - Add Expenses → iPhone Back Tap (`/expenses/shortcuts`) with credential management, copyable endpoint/header values, and the complete manual Shortcut recipe.
 - Refresh expenses when the page becomes visible, so entries added outside the app appear on return.
 
-The first version asks only for amount and description. It records INR expenses with category `other` and the iPhone's local calendar date. No native iOS build is required. The user must create the Shortcut and assign Back Tap on their phone; the web app cannot configure iOS Settings.
+The Shortcut asks for amount, description and category. It records INR expenses with the chosen category (default `other` when omitted) and the iPhone's local calendar date. No native iOS build is required. The user must create the Shortcut and assign Back Tap on their phone; the web app cannot configure iOS Settings.
 
 ## API contract
 
@@ -26,6 +26,7 @@ Normal Note Bot JWT authentication is required for:
 {
   "amount": 150.5,
   "description": "Lunch",
+  "category": "food",
   "date": "2026-09-12",
   "requestId": "ae80bf79-9a77-4714-a3ca-86ec05c95939"
 }
@@ -33,9 +34,10 @@ Normal Note Bot JWT authentication is required for:
 
 - Amount must be a finite JSON number greater than zero and at most 1,000,000,000.
 - Description must contain 1–500 characters after trimming.
+- Category is optional and defaults to `other`. Supply an exact key from your expense categories, not its display label. The setup page lists your keys. Custom categories are validated against the credential owner's settings; `other` is always available. Unknown categories return 400. Category changes with the same request ID return 409; old requests that omitted category can still be replayed.
 - Date must be a valid `yyyy-MM-dd` date. The phone supplies its local date; storage uses UTC midnight to match existing date-only expense entries.
 - Request ID must be a UUID and must remain unchanged across retries of the same payload. Uppercase and lowercase UUIDs are equivalent.
-- The server derives the user from the credential and fixes type/category to `expense`/`other`. Caller-supplied user, type, category and notes do not override these.
+- The server derives the user from the credential and fixes type to `expense`. Caller-supplied user, type and notes do not override these.
 - Successful creation returns 201; replay returns 200. Both include `saved: true`, `id`, `amount`, `description`, and a human-readable `message`.
 - Validation errors return 400; invalid/revoked/expired credentials return 401; conflicting reuse of an ID returns 409; server errors return 500. Errors include `message` and never `saved: true`.
 
@@ -44,15 +46,15 @@ Normal Note Bot JWT authentication is required for:
 1. Open Note Bot → Expenses → iPhone Back Tap and create a connection. Copy the full Authorization value. The raw token is displayed only in component memory and is not retained in browser storage.
 2. In Apple Shortcuts, create **Add Note Bot Expense**.
 3. Add **Ask for Input**, prompt “How much?”, type Number. Name the output **Amount**.
-4. Add **Ask for Input**, prompt “What for?”, type Text. Name the output **Description**.
+4. Add **Ask for Input**, prompt “What for?”, type Text. Name the output **Description**. Then add **List** with the exact category keys shown on the Note Bot setup page as separate items (for example `food`, `dining`, `transport`, `shopping`, `other`). Add **Choose from List**, select the List output, prompt “Category”, and disable Select Multiple. Name its output **Category**. Update the List manually when you change custom categories in Note Bot.
 5. Add **Current Date → Format Date**, Custom format `yyyy-MM-dd`, local timezone. Name the output **Expense Date**.
-6. Add **Generate UUID**. Name the output **Request ID**.
-7. Add **Get Contents of URL**, using the endpoint copied from the setup page. Set POST, add the Authorization header, and select JSON request body. Map `amount` (Number), `description` (Text), `date` (Text), and `requestId` (Text) to the four output variables.
+6. Install and open [Actions by Sindre Sorhus](https://sindresorhus.com/actions), then add its **Generate UUID** action in Shortcuts. Name the output **Request ID**.
+7. Add **Get Contents of URL**, using the endpoint copied from the setup page. Set POST, add the Authorization header, and select JSON request body. Map `amount` (Number), `description` (Text), `category` (Text), `date` (Text), and `requestId` (Text) to the five output variables.
 8. Add **Get Dictionary Value** for `message` from the HTTP result, then **Show Alert** with that value. Do not hard-code a success message.
 9. Run once and approve the iPhone's API access prompt. Verify the expense appears in Note Bot.
 10. Open Settings → Accessibility → Touch → Back Tap → Double Tap and select the Shortcut.
 
-Keep the credential private and remove it before sharing the Shortcut. A lost credential can be replaced in Note Bot. Each fresh Shortcut run creates a new ID, so after an ambiguous network failure check Expenses before starting another run. An automatic retry must reuse the original ID, date, amount and description; this manual recipe does not implement an offline queue or persistent retry workflow.
+Keep the credential private and remove it before sharing the Shortcut. A lost credential can be replaced in Note Bot. Each fresh Shortcut run creates a new ID, so after an ambiguous network failure check Expenses before starting another run. An automatic retry must reuse the original ID, date, amount, description and category; this manual recipe does not implement an offline queue or persistent retry workflow.
 
 ## Deployment
 
@@ -93,3 +95,5 @@ Before release, verify on an actual iPhone:
 - [Ask for Input](https://support.apple.com/en-au/guide/shortcuts/apd68b5c9161/ios)
 - [POST JSON with Get Contents of URL](https://support.apple.com/en-au/guide/shortcuts/apd58d46713f/ios)
 - [Custom date formats](https://support.apple.com/en-ie/guide/shortcuts/apd8d9b19184/ios)
+
+Category selection uses Apple’s [List and Choose from List actions](https://support.apple.com/en-lamr/guide/shortcuts/apd4dcacc115/ios). Existing credentials remain valid; no token replacement or database migration is needed for category support.

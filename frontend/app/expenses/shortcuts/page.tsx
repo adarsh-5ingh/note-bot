@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+const DEFAULT_KEYS = ['food', 'dining', 'transport', 'shopping', 'health', 'entertainment', 'bills', 'travel', 'education', 'tech', 'fitness', 'personal', 'gifts', 'other'];
+type Category = { key: string; label: string };
 type Credential = { expiresAt: string };
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function ShortcutSetupPage() {
   const [credential, setCredential] = useState<Credential | null>(null);
+  const [categories, setCategories] = useState<Category[] | null>(null);
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -30,6 +33,13 @@ export default function ShortcutSetupPage() {
         if (!res.ok) throw new Error(data.message || 'Could not load connection.');
         setCredential(data.credential);
         setReady(true);
+        const settingsRes = await fetch(`${API}/api/settings`, {
+          headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal,
+        });
+        if (!settingsRes.ok) throw new Error('Could not load categories. Refresh to try again.');
+        const settings = await settingsRes.json();
+        const choices: Category[] = settings.categories?.length ? settings.categories : DEFAULT_KEYS.map(key => ({ key, label: key }));
+        setCategories(choices.some(c => c.key === 'other') ? choices : [...choices, { key: 'other', label: 'Other' }]);
       } catch (err) {
         if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Could not load connection.');
       } finally { if (!controller.signal.aborted) setLoading(false); }
@@ -66,7 +76,7 @@ export default function ShortcutSetupPage() {
     <main style={{ maxWidth: 640, margin: '0 auto', padding: '24px 20px 100px', lineHeight: 1.65 }}>
       <Link href="/expenses" className="btn btn-ghost">← Expenses</Link>
       <h1 style={{ fontSize: 26, fontWeight: 700, marginTop: 20 }}>Add expenses with Back Tap</h1>
-      <p style={{ color: 'var(--text-2)', margin: '8px 0 24px' }}>Double-tap the back of your iPhone, enter an amount and description, and save without opening Note Bot.</p>
+      <p style={{ color: 'var(--text-2)', margin: '8px 0 24px' }}>Double-tap the back of your iPhone, enter an amount, description and category, and save without opening Note Bot.</p>
 
       <section className="glass-card" style={{ padding: 20, marginBottom: 24 }} aria-labelledby="connection-title">
         <h2 id="connection-title" style={{ fontSize: 18, fontWeight: 600 }}>1. Connect your Shortcut</h2>
@@ -100,8 +110,12 @@ export default function ShortcutSetupPage() {
         <ol style={{ paddingLeft: 24, display: 'grid', gap: 12 }}>
           <li><strong>Ask for Input:</strong> “How much?” Set input type to Number. Name the output <strong>Amount</strong>.</li>
           <li><strong>Ask for Input:</strong> “What for?” Set input type to Text. Name the output <strong>Description</strong>.</li>
+          <li><strong>List → Choose from List:</strong> enter the category keys below as separate List items. Add Choose from List, use that List as input, set the prompt to “Category”, and turn Select Multiple off. Name its output <strong>Category</strong>.
+            {categories ? <ul style={{ paddingLeft: 20 }}>{categories.map(c => <li key={c.key}>{c.label}: <code>{c.key}</code></li>)}</ul> : <p>Category keys are available after signing in and loading this page successfully.</p>}
+            <p>Use the exact keys, including custom keys. Update this list when you change your categories in Note Bot.</p>
+          </li>
           <li><strong>Current Date → Format Date:</strong> choose Custom, enter <code>yyyy-MM-dd</code>, and use your local timezone. Name the output <strong>Expense Date</strong>.</li>
-          <li><strong>Generate UUID:</strong> name the output <strong>Request ID</strong>. Generate it once per expense.</li>
+          <li><strong>Generate UUID:</strong> install and open <a href="https://sindresorhus.com/actions" target="_blank" rel="noreferrer">Actions by Sindre Sorhus</a> first; this action comes from that app. Add it and name the output <strong>Request ID</strong>. Generate it once per expense.</li>
           <li><strong>Get Contents of URL:</strong> paste this address and set Method to <strong>POST</strong>.
             <label htmlFor="shortcut-endpoint" style={{ display: 'block', marginTop: 8 }}>Expense endpoint</label>
             <input id="shortcut-endpoint" className="input" readOnly value={endpoint} style={{ width: '100%' }} />
@@ -113,6 +127,7 @@ export default function ShortcutSetupPage() {
               <tbody>
                 <tr><td><code>amount</code></td><td>Number</td><td>Amount</td></tr>
                 <tr><td><code>description</code></td><td>Text</td><td>Description</td></tr>
+                <tr><td><code>category</code></td><td>Text</td><td>Category (Choose from List output)</td></tr>
                 <tr><td><code>date</code></td><td>Text</td><td>Expense Date</td></tr>
                 <tr><td><code>requestId</code></td><td>Text</td><td>Request ID</td></tr>
               </tbody>
@@ -120,7 +135,7 @@ export default function ShortcutSetupPage() {
           </li>
           <li><strong>Get Dictionary Value:</strong> get <code>message</code> from the Get Contents of URL result. Then <strong>Show Alert</strong> with that value. This displays either the confirmed save or the server’s error.</li>
         </ol>
-        <p style={{ margin: '16px 0', color: 'var(--text-2)' }}>Run it once in Shortcuts and allow access to the API when prompted. Amounts are in INR; entries use the Other category. Canceling an input prompt stops before saving.</p>
+        <p style={{ margin: '16px 0', color: 'var(--text-2)' }}>Run it once in Shortcuts and allow access to the API when prompted. Amounts are in INR; entries use your selected category. Existing Shortcuts without a category still save under Other. Canceling an input prompt stops before saving.</p>
       </section>
 
       <section style={{ marginTop: 24 }} aria-labelledby="back-tap-title">

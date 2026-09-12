@@ -3,12 +3,14 @@ const { randomBytes, createHash } = require('node:crypto');
 const verifyToken = require('../middleware/verifyToken');
 const ShortcutCredential = require('../models/ShortcutCredential');
 const Expense = require('../models/Expense');
+const UserSettings = require('../models/UserSettings');
+const DEFAULT_CATEGORY_KEYS = ['food', 'dining', 'transport', 'shopping', 'health', 'entertainment', 'bills', 'travel', 'education', 'tech', 'fitness', 'personal', 'gifts', 'other'];
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const metadata = credential => credential ? { expiresAt: credential.expiresAt } : null;
 
 // Dependencies are injectable so HTTP behavior can be tested without a live database.
-function createShortcutRouter({ credentials = ShortcutCredential, expenses = Expense, authenticate = verifyToken } = {}) {
+function createShortcutRouter({ credentials = ShortcutCredential, expenses = Expense, settings = UserSettings, authenticate = verifyToken } = {}) {
   const router = express.Router();
   router.use('/shortcuts', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
@@ -46,7 +48,7 @@ function createShortcutRouter({ credentials = ShortcutCredential, expenses = Exp
       const credential = await credentials.findOne({ tokenHash: hash(match[1]), expiresAt: { $gt: new Date() } });
       if (!credential) return res.status(401).json({ message: 'Shortcut connection expired or was disconnected. Reconnect in Note Bot.' });
 
-      const { amount, description, date, requestId } = req.body || {};
+      const { amount, description, date, requestId, category = 'other' } = req.body || {};
       if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0 || amount > 1e9) {
         return res.status(400).json({ message: 'Enter an amount greater than zero and no more than 1,000,000,000.' });
       }
@@ -61,7 +63,14 @@ function createShortcutRouter({ credentials = ShortcutCredential, expenses = Exp
       if (typeof requestId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(requestId)) {
         return res.status(400).json({ message: 'Supply a UUID requestId; reuse it when retrying the same expense.' });
       }
-      const payloadHash = hash(JSON.stringify({ amount, description: description.trim(), date }));
+      if (typeof category !== 'string' || !category.trim() || category.length > 200) {
+        return res.status(400).json({ message: 'Choose a valid category key from the Note Bot setup page.' });
+      }
+      const categoryKey = category.trim();
+      // Preserve the original hash for Other so retries from existing Shortcuts still work.
+      const payloadHash = hash(JSON.stringify({ amount, description: description.trim(), date,
+        ...(categoryKey === 'other' ? {} : { category: categoryKey }),
+      }));
       // Do not accept writes until the unique retry-protection index is ready.
       await expenses.init();
       const query = { userId: credential.userId, shortcutRequestId: requestId.toLowerCase() };
@@ -72,14 +81,23 @@ function createShortcutRouter({ credentials = ShortcutCredential, expenses = Exp
         return success(expense, 200);
       };
       const success = (expense, status) => res.status(status).json({
-        saved: true, id: expense._id, amount: expense.amount, description: expense.description,
+        saved: true, id: expense._id, amount: expense.amount, description: expense.description, category: expense.category,
         message: `Saved ₹${expense.amount} — ${expense.description}`,
       });
       const existing = await expenses.findOne(query).select('+shortcutPayloadHash');
       if (existing) return replay(existing);
+      // Resolve categories for this credential's owner, never a caller-supplied user.
+      // Other remains a fallback even if removed from custom settings.
+      if (categoryKey !== 'other') {
+        const userSettings = await settings.findOne({ userId: credential.userId });
+        const keys = userSettings?.categories?.length ? userSettings.categories.map(c => c.key) : DEFAULT_CATEGORY_KEYS;
+        if (!keys.includes(categoryKey)) {
+          return res.status(400).json({ message: 'Category is unavailable. Update your Shortcut list from the Note Bot setup page.' });
+        }
+      }
       try {
         const expense = await expenses.create({ ...query, shortcutPayloadHash: payloadHash,
-          amount, description: description.trim(), date: parsedDate, type: 'expense', category: 'other', notes: '',
+          amount, description: description.trim(), date: parsedDate, type: 'expense', category: categoryKey, notes: '',
         });
         return success(expense, 201);
       } catch (error) {
