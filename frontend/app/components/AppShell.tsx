@@ -17,6 +17,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // Pages where the shell (header + nav) should not appear
   const isAuthPage   = pathname === '/' || pathname.startsWith('/auth');
   const isEditorPage = pathname.startsWith('/notes/');
+  const isShortcutSetup = pathname === '/expenses/shortcuts';
 
   if (isAuthPage || isEditorPage || !user) {
     return <>{children}</>;
@@ -25,7 +26,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isExplore = pathname === '/dashboard' && searchParams.get('tab') === 'explore';
   const activeTab: ActiveTab =
     pathname === '/tasks'    ? 'tasks'   :
-    pathname === '/expenses' ? 'expenses':
+    pathname.startsWith('/expenses') ? 'expenses':
     isExplore                ? 'explore' : 'notes';
 
   // FAB: dashboard navigates to new note, other pages dispatch event for page to handle
@@ -44,7 +45,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     <>
       <AppHeader />
       {children}
-      <button className={fabClass} onClick={handleFab} aria-label="Add">+</button>
+      {!isShortcutSetup && <button className={fabClass} onClick={handleFab} aria-label="Add">+</button>}
       <BottomNav active={activeTab} />
     </>
   );

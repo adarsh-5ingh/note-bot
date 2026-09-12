@@ -96,6 +96,12 @@ Visit [http://localhost:3000](http://localhost:3000) and sign in with any provid
 
 ## API Endpoints
 
+### iPhone Back Tap expenses
+
+Open **Expenses → iPhone Back Tap** to connect Apple Shortcuts and configure double-tap expense entry. The Shortcut asks for amount and description, then saves directly to Note Bot. See [setup, API contract, deployment and testing](docs/iphone-back-tap.md).
+
+Run backend tests with `cd backend && npm test`.
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /auth/google | No | Start Google OAuth |

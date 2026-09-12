@@ -17,6 +17,7 @@ const uploadRoutes = require('./routes/upload');
 const taskRoutes    = require('./routes/tasks');
 const expenseRoutes  = require('./routes/expenses');
 const settingsRoutes = require('./routes/settings');
+const shortcutRoutes = require('./routes/shortcuts');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -67,6 +68,7 @@ app.use('/api', uploadRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', expenseRoutes);
 app.use('/api', settingsRoutes);
+app.use('/api', shortcutRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Note Bot API is running' });

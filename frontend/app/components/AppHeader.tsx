@@ -28,7 +28,7 @@ function AppHeaderInner() {
   const isExplore  = pathname === '/dashboard' && searchParams.get('tab') === 'explore';
   const isNotes    = pathname === '/dashboard' && !isExplore;
   const isTasks    = pathname === '/tasks';
-  const isExpenses = pathname === '/expenses';
+  const isExpenses = pathname.startsWith('/expenses');
 
   if (!user) return null;
 

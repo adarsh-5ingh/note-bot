@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Expense {
@@ -197,6 +198,17 @@ export default function ExpensesPage() {
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
+  // Pick up entries added through Shortcuts when returning to the app.
+  useEffect(() => {
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible' && localStorage.getItem('auth_token')) {
+        void fetchExpenses().catch(() => setLoading(false));
+      }
+    };
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    return () => document.removeEventListener('visibilitychange', refreshOnReturn);
+  }, [fetchExpenses]);
+
   // Listen for FAB click dispatched by AppShell (use ref to always get fresh openAdd)
   const openAddRef = useRef(openAdd);
   openAddRef.current = openAdd;
@@ -336,6 +348,10 @@ export default function ExpensesPage() {
 
       {/* ── Content ── */}
       <main style={{ maxWidth: 580, margin: '0 auto', padding: '16px 16px', paddingBottom: 100, position: 'relative', zIndex: 1 }}>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <Link href="/expenses/shortcuts" className="btn btn-ghost">iPhone Back Tap</Link>
+        </div>
 
         {/* ── Summary card ── */}
         <div className="glass-card" style={{ padding: '14px 16px 16px', marginBottom: 12 }}>
