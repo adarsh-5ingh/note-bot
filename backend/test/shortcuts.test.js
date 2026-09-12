@@ -37,6 +37,9 @@ async function fixture(t) {
   };
   const app = express();
   app.use(express.json());
+  // Match production: these routers precede Shortcuts and must not intercept it.
+  app.use('/api', require('../src/routes/protected'));
+  app.use('/api', require('../src/routes/notes'));
   app.use('/api', createShortcutRouter({ credentials, expenses }));
   app.get('/private', verifyToken, (_req, res) => res.json({ ok: true }));
   const server = await new Promise((resolve, reject) => {
@@ -61,6 +64,13 @@ test('credentials require login, return secret only on creation, rotate and revo
   const f = await fixture(t);
   assert.equal((await f.call('/api/shortcuts/credential', 'POST')).status, 401);
   const first = await f.connect();
+  const missing = await f.call('/api/shortcuts/expenses', 'POST', undefined, {});
+  assert.equal(missing.status, 401);
+  assert.equal(missing.data.message, 'Reconnect your Shortcut in Note Bot.');
+  for (const path of ['/api/dashboard', '/api/notes', '/api/feed']) {
+    assert.equal((await f.call(path)).status, 401);
+    assert.equal((await f.call(path, 'GET', first)).status, 401);
+  }
   assert.match(first, /^nbsc_[a-f0-9]{64}$/);
   assert.equal(f.credentialStore.get('user-a').tokenHash, createHash('sha256').update(first).digest('hex'));
   const status = await f.call('/api/shortcuts/credential', 'GET', f.login('user-a'));

@@ -5,7 +5,8 @@ const verifyToken = require('../middleware/verifyToken');
 
 const router = express.Router();
 
-router.use(verifyToken);
+// This router shares /api with routes that use other authentication schemes.
+router.use(['/notes', '/feed'], verifyToken);
 
 // GET /api/notes — list current user's notes with optional search + tag filter
 router.get('/notes', async (req, res) => {
